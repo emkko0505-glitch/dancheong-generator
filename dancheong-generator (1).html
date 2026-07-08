@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>단청무늬 생성기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Song+Myung&family=Gowun+Batang:wght@400;700&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#12151c;
+    --panel:#1b212b;
+    --panel-2:#212836;
+    --line:#323b4a;
+    --gold:#c9a24b;
+    --gold-dim:#8f7638;
+    --red:#a8382f;
+    --text:#e9e4d6;
+    --text-dim:#9aa1af;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(1200px 600px at 50% -10%, #1a2130 0%, var(--ink) 55%),
+      var(--ink);
+    color:var(--text);
+    font-family:'Noto Sans KR', sans-serif;
+    min-height:100vh;
+  }
+  ::selection{background:var(--gold); color:#1a1e29;}
+  :focus-visible{outline:2px solid var(--gold); outline-offset:2px;}
+
+  header{
+    padding:36px 24px 18px;
+    text-align:center;
+    border-bottom:1px solid var(--line);
+    position:relative;
+  }
+  header::after{
+    content:"";
+    position:absolute; left:50%; bottom:-1px; transform:translateX(-50%);
+    width:120px; height:3px;
+    background:linear-gradient(90deg, transparent, var(--gold) 20%, var(--red) 50%, var(--gold) 80%, transparent);
+  }
+  h1{
+    font-family:'Song Myung', serif;
+    font-size:clamp(28px, 4vw, 42px);
+    letter-spacing:0.08em;
+    margin:0 0 8px;
+    color:var(--gold);
+    text-shadow:0 0 24px rgba(201,162,75,0.25);
+  }
+  header p{
+    margin:0; color:var(--text-dim); font-size:14px; letter-spacing:0.02em;
+  }
+
+  .layout{
+    max-width:1240px;
+    margin:0 auto;
+    padding:28px 20px 60px;
+    display:grid;
+    grid-template-columns:320px 1fr;
+    gap:24px;
+    align-items:start;
+  }
+  @media (max-width:860px){
+    .layout{grid-template-columns:1fr;}
+  }
+
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:6px;
+    padding:4px 18px 18px;
+    position:sticky;
+    top:20px;
+  }
+  @media (max-width:860px){ .panel{position:static;} }
+
+  .section{padding-top:16px;}
+  .section + .section{
+    margin-top:14px;
+    border-top:0;
+    position:relative;
+  }
+  .section + .section::before{
+    content:"";
+    display:block;
+    height:6px;
+    margin:0 -18px 12px;
+    background:
+      linear-gradient(var(--gold), var(--gold)) top / 100% 1.5px no-repeat,
+      linear-gradient(var(--red), var(--red)) bottom / 100% 1.5px no-repeat;
+  }
+  .section h2{
+    font-size:13px;
+    font-weight:600;
+    letter-spacing:0.06em;
+    color:var(--gold);
+    margin:0 0 12px;
+  }
+  .row{
+    display:flex; align-items:center; justify-content:space-between;
+    gap:10px; margin-bottom:10px;
+  }
+  .row label{font-size:12.5px; color:var(--text-dim); flex:1;}
+  .row .val{font-size:12px; color:var(--text); width:34px; text-align:right; font-variant-numeric:tabular-nums;}
+  input[type="range"]{
+    flex:2; accent-color:var(--gold); height:4px; cursor:pointer;
+  }
+  input[type="color"]{
+    -webkit-appearance:none; appearance:none;
+    width:30px; height:22px; border:1px solid var(--line); border-radius:4px;
+    background:none; padding:0; cursor:pointer;
+  }
+  input[type="color"]::-webkit-color-swatch-wrapper{padding:2px;}
+  input[type="color"]::-webkit-color-swatch{border-radius:3px; border:none;}
+  select{
+    background:var(--panel-2); color:var(--text); border:1px solid var(--line);
+    border-radius:4px; padding:6px 8px; font-size:12.5px; font-family:inherit; flex:2;
+  }
+  .checkrow{display:flex; align-items:center; gap:8px; margin-bottom:10px;}
+  .checkrow input{accent-color:var(--gold); width:15px; height:15px;}
+  .checkrow label{font-size:12.5px; color:var(--text-dim);}
+
+  .btn{
+    width:100%; padding:10px 12px; border-radius:4px; border:1px solid var(--line);
+    background:var(--panel-2); color:var(--text); font-family:inherit; font-size:13px;
+    cursor:pointer; margin-top:8px; letter-spacing:0.02em;
+    transition:border-color .15s, color .15s;
+  }
+  .btn:hover{border-color:var(--gold); color:var(--gold);}
+  .btn.primary{
+    background:linear-gradient(180deg, #d3ab55, var(--gold));
+    color:#1a1e29; border:none; font-weight:600;
+  }
+  .btn.primary:hover{filter:brightness(1.06); color:#1a1e29;}
+  .presets{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px;}
+  .preset-chip{
+    font-size:11px; padding:5px 9px; border-radius:20px;
+    border:1px solid var(--line); background:var(--panel-2); color:var(--text-dim);
+    cursor:pointer;
+  }
+  .preset-chip:hover{border-color:var(--gold); color:var(--gold);}
+
+  .stage{
+    display:flex; flex-direction:column; align-items:center; gap:16px;
+  }
+  .frame{
+    position:relative;
+    padding:22px;
+    border-radius:14px;
+    background:linear-gradient(180deg, #171c25, #12151c);
+    border:1px solid var(--line);
+    box-shadow:0 30px 60px -30px rgba(0,0,0,0.7), inset 0 0 0 1px rgba(255,255,255,0.02);
+  }
+  .frame::before{
+    content:"";
+    position:absolute; inset:8px;
+    border-radius:10px;
+    border:1px solid var(--gold-dim);
+    pointer-events:none;
+    opacity:0.5;
+  }
+  canvas{
+    display:block;
+    width:min(74vw, 560px);
+    height:min(74vw, 560px);
+    border-radius:8px;
+  }
+  .caption{
+    max-width:560px; text-align:center; font-size:12.5px; line-height:1.7;
+    color:var(--text-dim);
+  }
+  .caption b{color:var(--gold); font-weight:600;}
+  .stage-actions{display:flex; gap:10px; flex-wrap:wrap; justify-content:center; width:100%; max-width:560px;}
+  .stage-actions .btn{width:auto; flex:1; min-width:140px;}
+
+  footer{
+    text-align:center; padding:10px 20px 30px; color:var(--text-dim); font-size:11.5px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>丹靑 무늬 생성기</h1>
+  <p>사인·코사인 회전행렬로 배치하는 전통 단청 연화문(蓮花紋)</p>
+</header>
+
+<div class="layout">
+
+  <!-- CONTROL PANEL -->
+  <div class="panel">
+
+    <div class="section" style="padding-top:18px;">
+      <h2>빠른 배색</h2>
+      <div class="presets" id="presets"></div>
+      <button class="btn" id="randomBtn">🎲 오방색 랜덤 조합</button>
+    </div>
+
+    <div class="section">
+      <h2>꽃잎 · 연화문</h2>
+      <div class="row"><label for="coreScale">핵심 문양 크기</label><input type="range" id="coreScale" min="70" max="160" step="1" value="100"><span class="val" id="coreScaleVal">100</span></div>
+      <div class="row"><label for="petalCount">꽃잎 수</label><input type="range" id="petalCount" min="4" max="16" step="1" value="8"><span class="val" id="petalCountVal">8</span></div>
+      <div class="row"><label for="layers">겹 수</label><input type="range" id="layers" min="1" max="3" step="1" value="2"><span class="val" id="layersVal">2</span></div>
+      <div class="row"><label for="outerShape">바깥 꽃잎 모양</label>
+        <select id="outerShape">
+          <option value="lotus">연꽃형</option>
+          <option value="chrysanthemum">국화형</option>
+          <option value="diamond">다이아몬드형</option>
+          <option value="star">별형</option>
+        </select>
+      </div>
+      <div class="row"><label for="outerColor">바깥 꽃잎 색</label><input type="color" id="outerColor" value="#a8382f"></div>
+      <div class="row" id="innerShapeRow"><label for="innerShape">안쪽 꽃잎 모양</label>
+        <select id="innerShape">
+          <option value="lotus">연꽃형</option>
+          <option value="chrysanthemum">국화형</option>
+          <option value="diamond">다이아몬드형</option>
+          <option value="star">별형</option>
+        </select>
+      </div>
+      <div class="row" id="innerColorRow"><label for="innerColor">안쪽 꽃잎 색</label><input type="color" id="innerColor" value="#1e5b8c"></div>
+      <div class="row" id="thirdShapeRow" style="display:none;"><label for="thirdShape">세 번째 겹 모양</label>
+        <select id="thirdShape">
+          <option value="lotus">연꽃형</option>
+          <option value="chrysanthemum">국화형</option>
+          <option value="diamond">다이아몬드형</option>
+          <option value="star">별형</option>
+        </select>
+      </div>
+      <div class="row" id="thirdColorRow" style="display:none;"><label for="thirdColor">세 번째 겹 색</label><input type="color" id="thirdColor" value="#d9a441"></div>
+    </div>
+
+    <div class="section">
+      <h2>포인트 장식</h2>
+      <div class="checkrow"><input type="checkbox" id="outerAccentEnabled"><label for="outerAccentEnabled">바깥쪽 포인트 (꽃잎 끝 너머로 삐져나오는 장식)</label></div>
+      <div class="row"><label for="outerAccentColor">바깥쪽 포인트 색</label><input type="color" id="outerAccentColor" value="#2e6b4f"></div>
+      <div class="checkrow"><input type="checkbox" id="betweenAccentEnabled"><label for="betweenAccentEnabled">사이 포인트 (꽃잎 사이 틈 장식)</label></div>
+      <div class="row"><label for="betweenAccentColor">사이 포인트 색</label><input type="color" id="betweenAccentColor" value="#d9773a"></div>
+    </div>
+
+    <div class="section">
+      <h2>중심 문양</h2>
+      <div class="row">
+        <label for="centerStyle">스타일</label>
+        <select id="centerStyle">
+          <option value="rings">동심원</option>
+          <option value="pinwheel">팔랑개비</option>
+          <option value="plain">단색 원</option>
+        </select>
+      </div>
+      <div class="row"><label for="centerColor1">중심 색 1</label><input type="color" id="centerColor1" value="#d9a441"></div>
+      <div class="row"><label for="centerColor2">중심 색 2</label><input type="color" id="centerColor2" value="#ede6d6"></div>
+    </div>
+
+    <div class="section">
+      <h2>테두리 무늬</h2>
+      <div class="checkrow"><input type="checkbox" id="borderEnabled" checked><label for="borderEnabled">테두리 사용</label></div>
+      <div class="row"><label for="borderCount">반복 수</label><input type="range" id="borderCount" min="8" max="48" step="1" value="24"><span class="val" id="borderCountVal">24</span></div>
+      <div class="row"><label for="borderWidth">폭</label><input type="range" id="borderWidth" min="1" max="14" step="1" value="5"><span class="val" id="borderWidthVal">5</span></div>
+      <div class="row"><label for="borderRadiusPct">테두리 위치(반경)</label><input type="range" id="borderRadiusPct" min="80" max="115" step="1" value="98"><span class="val" id="borderRadiusPctVal">98</span></div>
+      <div class="row"><label for="borderColor">테두리 색 1</label><input type="color" id="borderColor" value="#d9a441"></div>
+      <div class="row"><label for="borderColor2">테두리 색 2</label><input type="color" id="borderColor2" value="#a8382f"></div>
+    </div>
+
+    <div class="section">
+      <h2>선 · 바탕</h2>
+      <div class="row"><label for="strokeColor">외곽선 색</label><input type="color" id="strokeColor" value="#12151c"></div>
+      <div class="row"><label for="strokeWidth">선 굵기(폭)</label><input type="range" id="strokeWidth" min="0" max="6" step="0.5" value="2"><span class="val" id="strokeWidthVal">2</span></div>
+      <div class="row"><label for="discColor">테두리(바탕) 색</label><input type="color" id="discColor" value="#132a3e"></div>
+    </div>
+
+    <div class="section">
+      <h2>전체 설정</h2>
+      <div class="row"><label for="patternSize">문양 크기</label><input type="range" id="patternSize" min="50" max="95" step="1" value="78"><span class="val" id="patternSizeVal">78</span></div>
+      <div class="checkrow"><input type="checkbox" id="rotateAnim"><label for="rotateAnim">회전 애니메이션</label></div>
+      <div class="row"><label for="rotateSpeed">회전 속도</label><input type="range" id="rotateSpeed" min="1" max="20" step="1" value="6"><span class="val" id="rotateSpeedVal">6</span></div>
+    </div>
+
+    <div class="section">
+      <button class="btn" id="resetBtn">기본값으로 초기화</button>
+    </div>
+
+  </div>
+
+  <!-- STAGE -->
+  <div class="stage">
+    <div class="frame">
+      <canvas id="canvas" width="640" height="640"></canvas>
+    </div>
+    <p class="caption">
+      <b>청·적·황·백·흑</b> 오방색을 바탕으로, 꽃잎마다 <b>회전각 θ</b>를<br>
+      2×2 회전행렬 <b>[[cosθ, −sinθ], [sinθ, cosθ]]</b> 에 대입해 좌표를 돌려가며 배치합니다.
+    </p>
+    <div class="stage-actions">
+      <button class="btn primary" id="downloadBtn">PNG로 저장</button>
+    </div>
+  </div>
+
+</div>
+
+<footer>단청(丹靑) — 궁궐과 사찰 목조 건축물에 사용되던 전통 채색 문양을 수학적으로 재구성한 생성기</footer>
+
+<script>
+(function(){
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+  const DPR = Math.min(window.devicePixelRatio || 1, 2);
+  const LOGICAL = 640;
+  canvas.width = LOGICAL * DPR;
+  canvas.height = LOGICAL * DPR;
+  ctx.scale(DPR, DPR);
+
+  // ---------- 2x2 rotation matrix helpers ----------
+  // Explicit rotation matrix: [[cosθ, -sinθ],[sinθ, cosθ]]
+  function rotationMatrix(theta){
+    const c = Math.cos(theta), s = Math.sin(theta);
+    return [c, -s, s, c];
+  }
+  function applyMatrix(m, p){
+    return { x: m[0]*p.x + m[1]*p.y, y: m[2]*p.x + m[3]*p.y };
+  }
+  function transformPoint(p, theta, scale, cx, cy){
+    const scaled = { x: p.x*scale, y: p.y*scale };
+    const rotated = applyMatrix(rotationMatrix(theta), scaled);
+    return { x: rotated.x + cx, y: rotated.y + cy };
+  }
+
+  // ---------- Petal shapes registry (local unit coords, tip at (0,-1)) ----------
+  // Every "bezier" shape uses the same 12 named points so one draw routine covers all of them.
+  const BEZIER_KEYS = ['tip','rc1','rc2','rMid','rc3','rc4','base','lc4','lc3','lMid','lc2','lc1'];
+
+  const SHAPES = {
+    lotus: { type:'bezier', pts:{
+      tip:  {x:0,     y:-1},
+      rc1:  {x:0.50,  y:-0.62},
+      rc2:  {x:0.62,  y:-0.18},
+      rMid: {x:0.42,  y: 0.0},
+      rc3:  {x:0.28,  y: 0.14},
+      rc4:  {x:0.12,  y: 0.16},
+      base: {x:0,     y: 0.20},
+      lc4:  {x:-0.12, y: 0.16},
+      lc3:  {x:-0.28, y: 0.14},
+      lMid: {x:-0.42, y: 0.0},
+      lc2:  {x:-0.62, y:-0.18},
+      lc1:  {x:-0.50, y:-0.62}
+    }},
+    chrysanthemum: { type:'bezier', pts:{
+      tip:  {x:0,     y:-1},
+      rc1:  {x:0.34,  y:-0.92},
+      rc2:  {x:0.60,  y:-0.55},
+      rMid: {x:0.50,  y:-0.05},
+      rc3:  {x:0.40,  y: 0.16},
+      rc4:  {x:0.16,  y: 0.22},
+      base: {x:0,     y: 0.26},
+      lc4:  {x:-0.16, y: 0.22},
+      lc3:  {x:-0.40, y: 0.16},
+      lMid: {x:-0.50, y:-0.05},
+      lc2:  {x:-0.60, y:-0.55},
+      lc1:  {x:-0.34, y:-0.92}
+    }},
+    diamond: { type:'poly', pts:[
+      {x:0, y:-1}, {x:0.42, y:0}, {x:0, y:0.24}, {x:-0.42, y:0}
+    ]},
+    star: { type:'poly', pts:[
+      {x:0, y:-1}, {x:0.17, y:-0.28}, {x:0.24, y:0.16}, {x:0, y:0.02}, {x:-0.24, y:0.16}, {x:-0.17, y:-0.28}
+    ]}
+  };
+
+  function fillAndStroke(fillColor, strokeColor, strokeWidth){
+    ctx.fillStyle = fillColor;
+    ctx.fill();
+    if(strokeWidth > 0){
+      ctx.lineWidth = strokeWidth;
+      ctx.strokeStyle = strokeColor;
+      ctx.stroke();
+    }
+  }
+
+  function drawShape(shapeKey, theta, scale, cx, cy, fillColor, strokeColor, strokeWidth){
+    const shape = SHAPES[shapeKey] || SHAPES.lotus;
+    if(shape.type === 'bezier'){
+      const T = {};
+      BEZIER_KEYS.forEach(k => T[k] = transformPoint(shape.pts[k], theta, scale, cx, cy));
+      ctx.beginPath();
+      ctx.moveTo(T.tip.x, T.tip.y);
+      ctx.bezierCurveTo(T.rc1.x,T.rc1.y, T.rc2.x,T.rc2.y, T.rMid.x,T.rMid.y);
+      ctx.bezierCurveTo(T.rc3.x,T.rc3.y, T.rc4.x,T.rc4.y, T.base.x,T.base.y);
+      ctx.bezierCurveTo(T.lc4.x,T.lc4.y, T.lc3.x,T.lc3.y, T.lMid.x,T.lMid.y);
+      ctx.bezierCurveTo(T.lc2.x,T.lc2.y, T.lc1.x,T.lc1.y, T.tip.x,T.tip.y);
+      ctx.closePath();
+      fillAndStroke(fillColor, strokeColor, strokeWidth);
+    } else {
+      ctx.beginPath();
+      shape.pts.forEach((p, idx) => {
+        const t = transformPoint(p, theta, scale, cx, cy);
+        if(idx===0) ctx.moveTo(t.x, t.y); else ctx.lineTo(t.x, t.y);
+      });
+      ctx.closePath();
+      fillAndStroke(fillColor, strokeColor, strokeWidth);
+    }
+  }
+
+  function drawPetalRing(shapeKey, n, radius, cx, cy, offset, color, strokeColor, strokeWidth){
+    for(let i=0;i<n;i++){
+      const theta = (i * (2*Math.PI/n)) + offset;
+      drawShape(shapeKey, theta, radius, cx, cy, color, strokeColor, strokeWidth);
+    }
+  }
+
+  // ---------- Accent points (diamond shape, aligned with or between petals) ----------
+  // "scale" is the distance the diamond's tip reaches from the center.
+  function drawAccentRing(n, scale, cx, cy, angleOffset, color, strokeColor, strokeWidth){
+    for(let i=0;i<n;i++){
+      const theta = i * (2*Math.PI/n) + angleOffset;
+      drawShape('diamond', theta, scale, cx, cy, color, strokeColor, strokeWidth);
+    }
+  }
+
+  // ---------- Border: radial bars placed with sin/cos, oriented via rotation matrix ----------
+  function drawBorderRing(count, radius, length, thickness, colorA, colorB, cx, cy, offset){
+    const localCorners = [
+      {x:-length/2, y:-thickness/2},
+      {x: length/2, y:-thickness/2},
+      {x: length/2, y: thickness/2},
+      {x:-length/2, y: thickness/2}
+    ];
+    for(let i=0;i<count;i++){
+      const angle = i * (2*Math.PI/count) + offset;
+      // position via sine & cosine
+      const px = cx + radius*Math.cos(angle);
+      const py = cy + radius*Math.sin(angle);
+      // orientation via rotation matrix (tangential)
+      const m = rotationMatrix(angle + Math.PI/2);
+      ctx.beginPath();
+      localCorners.forEach((p, idx) => {
+        const r = applyMatrix(m, p);
+        const x = r.x + px, y = r.y + py;
+        if(idx===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+      });
+      ctx.closePath();
+      ctx.fillStyle = (i % 2 === 0) ? colorA : colorB;
+      ctx.fill();
+    }
+  }
+
+  function drawGuideRing(radius, cx, cy, color, width){
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius, 0, Math.PI*2);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.stroke();
+  }
+
+  // ---------- Center motifs ----------
+  function drawCenter(style, radius, cx, cy, c1, c2, strokeColor, strokeWidth, offset){
+    if(style === 'plain'){
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, 0, Math.PI*2);
+      ctx.fillStyle = c1;
+      ctx.fill();
+      if(strokeWidth>0){ ctx.lineWidth=strokeWidth; ctx.strokeStyle=strokeColor; ctx.stroke(); }
+    } else if(style === 'rings'){
+      const steps = [
+        {r: radius,      color: c1},
+        {r: radius*0.66, color: c2},
+        {r: radius*0.30, color: c1}
+      ];
+      steps.forEach(s => {
+        ctx.beginPath();
+        ctx.arc(cx, cy, s.r, 0, Math.PI*2);
+        ctx.fillStyle = s.color;
+        ctx.fill();
+        if(strokeWidth>0){ ctx.lineWidth=Math.max(strokeWidth*0.6,1); ctx.strokeStyle=strokeColor; ctx.stroke(); }
+      });
+    } else if(style === 'pinwheel'){
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, 0, Math.PI*2);
+      ctx.fillStyle = c2;
+      ctx.fill();
+      const blades = 8;
+      const tri = [ {x:0,y:0}, {x:radius*0.95,y:-radius*0.32}, {x:radius*0.95,y:radius*0.32} ];
+      for(let i=0;i<blades;i++){
+        const theta = i*(2*Math.PI/blades) + offset;
+        const m = rotationMatrix(theta);
+        ctx.beginPath();
+        tri.forEach((p, idx) => {
+          const r = applyMatrix(m, p);
+          const x = r.x+cx, y = r.y+cy;
+          if(idx===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+        });
+        ctx.closePath();
+        ctx.fillStyle = (i%2===0) ? c1 : c2;
+        ctx.fill();
+      }
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius*0.22, 0, Math.PI*2);
+      ctx.fillStyle = c1;
+      ctx.fill();
+      if(strokeWidth>0){ ctx.lineWidth=strokeWidth*0.6; ctx.strokeStyle=strokeColor; ctx.stroke(); }
+    }
+  }
+
+  // ---------- State ----------
+  const ids = ['coreScale','petalCount','layers','outerShape','outerColor','innerShape','innerColor',
+    'thirdShape','thirdColor','centerStyle','centerColor1','centerColor2',
+    'borderEnabled','borderCount','borderWidth','borderRadiusPct','borderColor','borderColor2',
+    'strokeColor','strokeWidth','discColor','patternSize','rotateAnim','rotateSpeed',
+    'outerAccentEnabled','outerAccentColor','betweenAccentEnabled','betweenAccentColor'];
+  const el = {};
+  ids.forEach(id => el[id] = document.getElementById(id));
+
+  let animOffset = 0;
+  let lastTime = null;
+  let rafId = null;
+
+  function readState(){
+    return {
+      coreScale: +el.coreScale.value,
+      petalCount: +el.petalCount.value,
+      layers: +el.layers.value,
+      outerShape: el.outerShape.value,
+      outerColor: el.outerColor.value,
+      innerShape: el.innerShape.value,
+      innerColor: el.innerColor.value,
+      thirdShape: el.thirdShape.value,
+      thirdColor: el.thirdColor.value,
+      centerStyle: el.centerStyle.value,
+      centerColor1: el.centerColor1.value,
+      centerColor2: el.centerColor2.value,
+      borderEnabled: el.borderEnabled.checked,
+      borderCount: +el.borderCount.value,
+      borderWidth: +el.borderWidth.value,
+      borderRadiusPct: +el.borderRadiusPct.value,
+      borderColor: el.borderColor.value,
+      borderColor2: el.borderColor2.value,
+      strokeColor: el.strokeColor.value,
+      strokeWidth: +el.strokeWidth.value,
+      discColor: el.discColor.value,
+      patternSize: +el.patternSize.value,
+      rotateAnim: el.rotateAnim.checked,
+      rotateSpeed: +el.rotateSpeed.value,
+      outerAccentEnabled: el.outerAccentEnabled.checked,
+      outerAccentColor: el.outerAccentColor.value,
+      betweenAccentEnabled: el.betweenAccentEnabled.checked,
+      betweenAccentColor: el.betweenAccentColor.value
+    };
+  }
+
+  function render(){
+    const s = readState();
+    const cx = LOGICAL/2, cy = LOGICAL/2;
+    const canvasHalf = LOGICAL/2 - 20;
+    const patternRadius = canvasHalf * (s.patternSize/100);
+
+    ctx.clearRect(0,0,LOGICAL,LOGICAL);
+
+    // backing disc
+    const discRadius = canvasHalf*0.98;
+    ctx.beginPath();
+    ctx.arc(cx, cy, discRadius, 0, Math.PI*2);
+    ctx.fillStyle = s.discColor;
+    ctx.fill();
+
+    // border ring
+    if(s.borderEnabled){
+      const bRadius = patternRadius*(s.borderRadiusPct/100);
+      const barLen = (2*Math.PI*bRadius/s.borderCount) * 0.72;
+      drawGuideRing(bRadius + s.borderWidth*0.9, cx, cy, s.borderColor, 1.4);
+      drawGuideRing(bRadius - s.borderWidth*0.9, cx, cy, s.strokeColor, 1.2);
+      drawBorderRing(s.borderCount, bRadius, barLen, s.borderWidth, s.borderColor, s.borderColor2, cx, cy, animOffset*0.6);
+    }
+
+    // core scale multiplier lets the flower grow independently of the overall/border size
+    const core = s.coreScale/100;
+
+    // petal layers (outer -> inner)
+    const radii = [];
+    if(s.layers === 1) radii.push(patternRadius*0.66*core);
+    if(s.layers === 2) radii.push(patternRadius*0.68*core, patternRadius*0.44*core);
+    if(s.layers === 3) radii.push(patternRadius*0.70*core, patternRadius*0.48*core, patternRadius*0.28*core);
+
+    const maxPetalReach = discRadius*0.94;
+    for(let i=0;i<radii.length;i++) radii[i] = Math.min(radii[i], maxPetalReach);
+
+    const outerRadius = radii[0];
+
+    // outer accent points: peek out beyond the outermost petal tips, aligned with the petals
+    if(s.outerAccentEnabled){
+      const accentReach = Math.min(outerRadius*1.14, discRadius*0.99);
+      drawAccentRing(s.petalCount, accentReach, cx, cy, animOffset, s.outerAccentColor, s.strokeColor, s.strokeWidth);
+    }
+
+    const shapes = [s.outerShape, s.innerShape, s.thirdShape];
+    const colors = [s.outerColor, s.innerColor, s.thirdColor];
+    radii.forEach((r, idx) => {
+      const stepOffset = idx * (Math.PI/s.petalCount);
+      drawPetalRing(shapes[idx], s.petalCount, r, cx, cy, animOffset + stepOffset, colors[idx], s.strokeColor, s.strokeWidth);
+    });
+
+    // between accent points: sit in the notches between the outer petals
+    if(s.betweenAccentEnabled){
+      drawAccentRing(s.petalCount, outerRadius*0.92, cx, cy, animOffset + Math.PI/s.petalCount, s.betweenAccentColor, s.strokeColor, s.strokeWidth);
+    }
+
+    // center
+    const centerRadius = patternRadius*0.20*core;
+    drawCenter(s.centerStyle, centerRadius, cx, cy, s.centerColor1, s.centerColor2, s.strokeColor, s.strokeWidth, animOffset*1.4);
+  }
+
+  function syncLabels(){
+    document.getElementById('coreScaleVal').textContent = el.coreScale.value;
+    document.getElementById('petalCountVal').textContent = el.petalCount.value;
+    document.getElementById('layersVal').textContent = el.layers.value;
+    document.getElementById('borderCountVal').textContent = el.borderCount.value;
+    document.getElementById('borderWidthVal').textContent = el.borderWidth.value;
+    document.getElementById('borderRadiusPctVal').textContent = el.borderRadiusPct.value;
+    document.getElementById('strokeWidthVal').textContent = el.strokeWidth.value;
+    document.getElementById('patternSizeVal').textContent = el.patternSize.value;
+    document.getElementById('rotateSpeedVal').textContent = el.rotateSpeed.value;
+
+    const showInner = (+el.layers.value >= 2);
+    const showThird = (+el.layers.value >= 3);
+    document.getElementById('innerColorRow').style.display = showInner ? 'flex' : 'none';
+    document.getElementById('innerShapeRow').style.display = showInner ? 'flex' : 'none';
+    document.getElementById('thirdColorRow').style.display = showThird ? 'flex' : 'none';
+    document.getElementById('thirdShapeRow').style.display = showThird ? 'flex' : 'none';
+  }
+
+  function requestRender(){
+    syncLabels();
+    render();
+  }
+
+  ids.forEach(id => {
+    const type = el[id].type;
+    const evt = (type === 'checkbox' || el[id].tagName === 'SELECT') ? 'change' : 'input';
+    el[id].addEventListener(evt, requestRender);
+  });
+
+  // ---------- Animation loop ----------
+  function loop(t){
+    if(lastTime === null) lastTime = t;
+    const dt = (t - lastTime)/1000;
+    lastTime = t;
+    if(el.rotateAnim.checked){
+      animOffset += dt * (el.rotateSpeed.value/40);
+      render();
+    }
+    rafId = requestAnimationFrame(loop);
+  }
+  const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(!prefersReduced){
+    requestAnimationFrame(loop);
+  } else {
+    el.rotateAnim.checked = false;
+    el.rotateAnim.disabled = true;
+  }
+
+  // ---------- Presets (traditional obangsaek-leaning combinations) ----------
+  const PRESETS = [
+    {name:'정통 오방색', outerColor:'#a8382f', innerColor:'#1e5b8c', thirdColor:'#d9a441', centerColor1:'#d9a441', centerColor2:'#ede6d6', borderColor:'#d9a441', borderColor2:'#a8382f', discColor:'#132a3e'},
+    {name:'청록 산수',   outerColor:'#1e5b8c', innerColor:'#2e6b4f', thirdColor:'#ede6d6', centerColor1:'#ede6d6', centerColor2:'#1e5b8c', borderColor:'#2e6b4f', borderColor2:'#1e5b8c', discColor:'#0e1f22'},
+    {name:'황금 궁궐',   outerColor:'#d9a441', innerColor:'#a8382f', thirdColor:'#2e6b4f', centerColor1:'#d9a441', centerColor2:'#a8382f', borderColor:'#d9a441', borderColor2:'#2e6b4f', discColor:'#241318'},
+    {name:'묵백 단아',   outerColor:'#ede6d6', innerColor:'#232323', thirdColor:'#a8382f', centerColor1:'#ede6d6', centerColor2:'#232323', borderColor:'#ede6d6', borderColor2:'#232323', discColor:'#1a1e29'},
+    {name:'만다라 겹문양', outerColor:'#d9a441', innerColor:'#1e5b8c', thirdColor:'#0d2f6b', centerColor1:'#d9a441', centerColor2:'#0d2f6b', borderColor:'#8a2f27', borderColor2:'#8a2f27', discColor:'#5c1f1a',
+      coreScale:132, outerShape:'lotus', innerShape:'chrysanthemum',
+      outerAccentEnabled:true, outerAccentColor:'#2e6b4f', betweenAccentEnabled:true, betweenAccentColor:'#c96a2e'}
+  ];
+
+  function applyPreset(p){
+    el.outerColor.value = p.outerColor;
+    el.innerColor.value = p.innerColor;
+    el.thirdColor.value = p.thirdColor;
+    el.centerColor1.value = p.centerColor1;
+    el.centerColor2.value = p.centerColor2;
+    el.borderColor.value = p.borderColor;
+    el.borderColor2.value = p.borderColor2;
+    el.discColor.value = p.discColor;
+    // optional fields: only touch them if the preset defines them, so other presets
+    // keep whatever the user already has for shape / accent / core-scale controls
+    if(p.coreScale !== undefined) el.coreScale.value = p.coreScale;
+    if(p.outerShape !== undefined) el.outerShape.value = p.outerShape;
+    if(p.innerShape !== undefined) el.innerShape.value = p.innerShape;
+    if(p.thirdShape !== undefined) el.thirdShape.value = p.thirdShape;
+    if(p.outerAccentEnabled !== undefined) el.outerAccentEnabled.checked = p.outerAccentEnabled;
+    if(p.outerAccentColor !== undefined) el.outerAccentColor.value = p.outerAccentColor;
+    if(p.betweenAccentEnabled !== undefined) el.betweenAccentEnabled.checked = p.betweenAccentEnabled;
+    if(p.betweenAccentColor !== undefined) el.betweenAccentColor.value = p.betweenAccentColor;
+    requestRender();
+  }
+
+  const presetsWrap = document.getElementById('presets');
+  PRESETS.forEach(p => {
+    const chip = document.createElement('button');
+    chip.className = 'preset-chip';
+    chip.textContent = p.name;
+    chip.addEventListener('click', () => applyPreset(p));
+    presetsWrap.appendChild(chip);
+  });
+
+  const OBANG = ['#a8382f','#1e5b8c','#d9a441','#ede6d6','#232323','#2e6b4f'];
+  function randColor(exclude){
+    let c;
+    do { c = OBANG[Math.floor(Math.random()*OBANG.length)]; } while(c === exclude);
+    return c;
+  }
+  document.getElementById('randomBtn').addEventListener('click', () => {
+    const outer = randColor();
+    const inner = randColor(outer);
+    const third = randColor(inner);
+    el.outerColor.value = outer;
+    el.innerColor.value = inner;
+    el.thirdColor.value = third;
+    el.centerColor1.value = randColor();
+    el.centerColor2.value = randColor(el.centerColor1.value);
+    el.borderColor.value = randColor();
+    el.borderColor2.value = randColor(el.borderColor.value);
+    el.discColor.value = Math.random() > 0.5 ? '#132a3e' : '#1a1e29';
+    el.petalCount.value = [6,8,8,10,12][Math.floor(Math.random()*5)];
+    el.layers.value = [1,2,2,3][Math.floor(Math.random()*4)];
+    const styles = ['rings','pinwheel','plain'];
+    el.centerStyle.value = styles[Math.floor(Math.random()*styles.length)];
+    requestRender();
+  });
+
+  // ---------- Reset ----------
+  const DEFAULTS = {
+    coreScale:100, petalCount:8, layers:2,
+    outerShape:'lotus', outerColor:'#a8382f', innerShape:'lotus', innerColor:'#1e5b8c', thirdShape:'lotus', thirdColor:'#d9a441',
+    centerStyle:'rings', centerColor1:'#d9a441', centerColor2:'#ede6d6',
+    borderEnabled:true, borderCount:24, borderWidth:5, borderRadiusPct:98, borderColor:'#d9a441', borderColor2:'#a8382f',
+    strokeColor:'#12151c', strokeWidth:2, discColor:'#132a3e', patternSize:78,
+    rotateAnim:false, rotateSpeed:6,
+    outerAccentEnabled:false, outerAccentColor:'#2e6b4f', betweenAccentEnabled:false, betweenAccentColor:'#d9773a'
+  };
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    Object.keys(DEFAULTS).forEach(k => {
+      if(el[k].type === 'checkbox') el[k].checked = DEFAULTS[k];
+      else el[k].value = DEFAULTS[k];
+    });
+    animOffset = 0;
+    requestRender();
+  });
+
+  // ---------- Download ----------
+  document.getElementById('downloadBtn').addEventListener('click', () => {
+    const link = document.createElement('a');
+    link.download = 'dancheong-pattern.png';
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  });
+
+  // ---------- Init ----------
+  requestRender();
+})();
+</script>
+
+</body>
+</html>
